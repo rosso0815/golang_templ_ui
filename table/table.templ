@@ -1,0 +1,124 @@
+package table
+
+// Fragment renders the full interactive unit — search box, table and
+// pagination — wrapped in a single form. Every control inside (sort headers,
+// search box, pagination links) targets and swaps this whole form via HTMX,
+// so state and result counts always stay consistent together.
+templ Fragment(vm TableViewModel, endpoint string) {
+	<form id={ vm.FormID }>
+		<input type="hidden" name="sort" value={ vm.State.SortKey }/>
+		<input type="hidden" name="dir" value={ vm.State.SortDir }/>
+		<input type="hidden" name="page" value={ toStr(vm.State.Page) }/>
+		<input type="hidden" name="page_size" value={ toStr(vm.State.PageSize) }/>
+		@searchBox(vm, endpoint)
+		@Table(vm, endpoint)
+		@Pagination(vm, endpoint)
+	</form>
+}
+
+// Table renders just the Bootstrap 5 <table> element. Header cells for
+// sortable columns are HTMX links that submit the enclosing form's state
+// along with the new sort key/direction.
+templ Table(vm TableViewModel, endpoint string) {
+	<table class="table table-striped table-hover align-middle">
+		<thead>
+			<tr>
+				for _, h := range vm.Headers {
+					@headerCell(h, vm, endpoint)
+				}
+			</tr>
+		</thead>
+		<tbody>
+			for _, row := range vm.Rows {
+				<tr>
+					for _, cell := range row {
+						<td>
+							@cell
+						</td>
+					}
+				</tr>
+			}
+			if len(vm.Rows) == 0 {
+				<tr>
+					<td colspan={ toStr(len(vm.Headers)) } class="text-center text-muted">
+						No results
+					</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+}
+
+templ headerCell(h HeaderCell, vm TableViewModel, endpoint string) {
+	if !h.Sortable {
+		<th scope="col">{ h.Label }</th>
+	} else {
+		<th scope="col">
+			<a
+				href="#"
+				hx-get={ endpoint }
+				hx-include={ "#" + vm.FormID }
+				hx-vals={ `{"sort":"` + h.SortKey + `","dir":"` + h.Dir + `","page":"1"}` }
+				hx-target={ "#" + vm.FormID }
+				hx-swap="outerHTML"
+			>
+				{ h.Label }
+				if h.Active {
+					if h.Dir == "asc" {
+						<span aria-hidden="true">&darr;</span>
+					} else {
+						<span aria-hidden="true">&uarr;</span>
+					}
+				}
+			</a>
+		</th>
+	}
+}
+
+// searchBox renders a debounced Bootstrap search input, part of Fragment's form.
+templ searchBox(vm TableViewModel, endpoint string) {
+	<div class="input-group mb-3">
+		<span class="input-group-text">Search</span>
+		<input
+			type="search"
+			class="form-control"
+			name="search"
+			value={ vm.State.Search }
+			hx-get={ endpoint }
+			hx-include={ "#" + vm.FormID }
+			hx-vals={ `{"page":"1"}` }
+			hx-trigger="keyup changed delay:400ms"
+			hx-target={ "#" + vm.FormID }
+			hx-swap="outerHTML"
+		/>
+	</div>
+}
+
+// Pagination renders Bootstrap pagination controls for the current page range.
+templ Pagination(vm TableViewModel, endpoint string) {
+	<nav aria-label="Table pagination">
+		<ul class="pagination">
+			@pageItem(vm, endpoint, vm.State.Page-1, "Previous", vm.State.Page <= 1)
+			for p := 1; p <= vm.TotalPages; p++ {
+				@pageItem(vm, endpoint, p, toStr(p), p == vm.State.Page)
+			}
+			@pageItem(vm, endpoint, vm.State.Page+1, "Next", vm.State.Page >= vm.TotalPages)
+		</ul>
+	</nav>
+}
+
+templ pageItem(vm TableViewModel, endpoint string, page int, label string, disabledOrActive bool) {
+	<li class={ "page-item", templ.KV("disabled", disabledOrActive && (label == "Previous" || label == "Next")), templ.KV("active", disabledOrActive && label != "Previous" && label != "Next") }>
+		<a
+			class="page-link"
+			href="#"
+			hx-get={ endpoint }
+			hx-include={ "#" + vm.FormID }
+			hx-vals={ `{"page":"` + toStr(page) + `"}` }
+			hx-target={ "#" + vm.FormID }
+			hx-swap="outerHTML"
+		>
+			{ label }
+		</a>
+	</li>
+}
