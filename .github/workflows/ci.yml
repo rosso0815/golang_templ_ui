@@ -1,0 +1,62 @@
+name: Go CI and release
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - '**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    env:
+      GOBIN: ${{ runner.temp }}/go-bin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Install matching templ CLI
+        run: go install "github.com/a-h/templ/cmd/templ@$(go list -m -f '{{.Version}}' github.com/a-h/templ)"
+      - name: Generate templ files
+        run: '"$GOBIN/templ" generate ./...'
+      - name: Build
+        run: go build ./...
+      - name: Test
+        run: go test ./...
+
+  release:
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          number='(0|[1-9][0-9]*)'
+          identifier='(0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)'
+          build='[0-9A-Za-z-]+'
+          semver="^v${number}\.${number}\.${number}(-${identifier}(\.${identifier})*)?(\+${build}(\.${build})*)?$"
+          if [[ ! "$TAG" =~ $semver ]]; then
+            echo "::error::Tag $TAG is not a valid semantic version (expected vMAJOR.MINOR.PATCH)."
+            exit 1
+          fi
+
+          options=()
+          version_without_metadata="${TAG%%+*}"
+          if [[ "$version_without_metadata" == *-* ]]; then
+            options+=(--prerelease)
+          fi
+          gh release create "$TAG" --verify-tag --generate-notes "${options[@]}"
