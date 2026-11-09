@@ -68,3 +68,23 @@ make test       # go test ./...
 make vet        # go vet ./...
 make run-example  # run the demo app on :8080
 ```
+
+## CI and releases
+
+GitHub Actions runs on pushes and pull requests using the Go version in
+`go.mod`. It installs the templ CLI at the module's templ version, generates
+the Go code, and runs `go build ./...` and `go test ./...`.
+
+To publish a release, push a semantic-version tag such as `v1.2.3`:
+
+```sh
+git tag v1.2.3
+git push origin v1.2.3
+```
+
+After CI succeeds, the workflow creates a GitHub Release with generated
+release notes. Tags with a prerelease suffix (for example `v1.2.3-rc.1`)
+create prereleases. GitHub automatically supplies source archives; this library
+does not publish binary artifacts. The repository's Actions settings must
+allow the workflow's `GITHUB_TOKEN` to have `contents: write` permission for
+the release job.
