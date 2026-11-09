@@ -1,4 +1,4 @@
-module github.com/rosso0815/golang_templ_ui
+module github.com/rosso0815/rosso0815-go-ui-templ
 
 go 1.26.7
 

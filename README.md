@@ -5,7 +5,7 @@ A reusable Go library for rendering server-driven, sortable/paginated/searchable
 ## Install
 
 ```sh
-go get github.com/pfistera/golang_templ_ui
+go get github.com/rosso0815/rosso0815-go-ui-templ
 ```
 
 You'll also need the `templ` CLI to generate code from `.templ` files:
@@ -53,11 +53,17 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 `table.Fragment` renders a single `<form>` containing the search box, `<table>`, and pagination controls together. Every sort header, the search input, and every pagination link use `hx-include` to submit the form's current state and `hx-target`/`hx-swap="outerHTML"` to replace the whole form — so state and result counts always stay in sync. Wire the same handler to a `GET` route and call it for both the initial full-page render and subsequent HTMX fragment requests.
 
-See [`examples/basic`](examples/basic) for a complete runnable app (in-memory data, edit/delete row actions).
+See [`examples/basic`](examples/basic) for a complete runnable app with in-memory sample data and
+HTMX-powered search, sorting, and pagination. Start it with:
 
-The basic example uses an inline HTMX edit form at `GET /people/{id}/edit` and
-`POST /people/{id}/edit`. It preserves the table's current search, sort, and
-pagination state while validating and updating the in-memory person.
+```sh
+make run-example
+```
+
+Then open http://localhost:8080.
+
+The demo keeps its data in memory and shows how to render the same table
+fragment inside a full page and for subsequent HTMX requests.
 
 ## Development
 
