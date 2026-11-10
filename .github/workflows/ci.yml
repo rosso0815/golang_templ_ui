@@ -16,8 +16,8 @@ permissions:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    # env:
-    #   GOBIN: ${{ runner.temp }}/go-bin
+    env:
+      GOBIN: ${{ github.workspace }}/.gobin
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
@@ -25,24 +25,20 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - name: Add GOBIN to PATH
+        run: |
+          mkdir -p "$GOBIN"
+          echo "$GOBIN" >> "$GITHUB_PATH"
+
       - name: Install matching templ CLI
         run: go install "github.com/a-h/templ/cmd/templ@$(go list -m -f '{{.Version}}' github.com/a-h/templ)"
 
-      - name: Show Env
-        run: printenv
-
-      - name: Show Go Env
-        run: go env
-
-      - name: Show Gobin
-        run: ls -ltr $GOBIN/*
-
-      # - name: Generate templ files
-      #   run: '"$GOBIN/templ" generate ./...'
-      # - name: Build
-      #   run: go build ./...
-      # - name: Test
-      #   run: go test ./...
+      - name: Generate templ files
+        run: templ generate ./...
+      - name: Build
+        run: go build ./...
+      - name: Test
+        run: go test ./...
 
   release:
     needs: build-and-test
