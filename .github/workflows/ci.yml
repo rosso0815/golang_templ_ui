@@ -14,8 +14,8 @@ permissions:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    env:
-      GOBIN: ${{ runner.temp }}/go-bin
+    # env:
+    #   GOBIN: ${{ runner.temp }}/go-bin
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
